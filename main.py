@@ -9,6 +9,10 @@ import os
 import time
 import pyttsx3
 import speech_recognition as sr
+import pytz
+from time import sleep
+import sys
+from random import choice
 
 
 engine = pyttsx3.init()
@@ -52,6 +56,24 @@ DAY_EXTENSIONS = [
     "st"
 ]
 
+
+CALENDAR_TRIGGERS = [
+    "am i busy",
+    "do i have plans",
+    "am i free",
+    "what plans do i have",
+    "what do i have"
+]
+
+
+NOT_UNDERSTOOD_RESPONSES = [
+    "I'm sorry, I didn't catch that?",
+    "I did't quite understand what you said?",
+    "I don't understand, can you try again?"
+]
+
+
+
 def speak(text):
     engine.say(text)
     engine.runAndWait()
@@ -67,9 +89,9 @@ def recognize_speech():
         try:
             rec_text = r.recognize_google(audio_data=audio)
 
-        except sr.UnknownValueError as e:
+        except Exception as e:
             print(f"Exception: {e}")
-            rec_text = None
+            rec_text = ""
 
         return rec_text
 
@@ -105,10 +127,15 @@ def get_events(day, service):
     date = datetime.datetime.combine(day, datetime.datetime.min.time())
     end_date = datetime.datetime.combine(day, datetime.datetime.max.time())
 
-    
+    utc = pytz.UTC
+
+    date = date.astimezone(utc)
+    end_date = end_date.astimezone(utc)
+
     events_result = service.events().list(
         calendarId='primary',
-        timeMin=now,
+        timeMin=date.isoformat(),
+        timeMax=end_date.isoformat(),
         singleEvents=True,
         orderBy='startTime'
     ).execute()
@@ -116,11 +143,44 @@ def get_events(day, service):
     events = events_result.get('items', [])
 
     if not events:
-        print('No upcoming events found.')
+        speak('Nothing in sight')
 
-    for event in events:
-        start = event['start'].get('dateTime', event['start'].get('date'))
-        print(start, event['summary'])
+    else:
+        if len(events) != 1: 
+            speak(f"You have {len(events)} events on that day.")
+        
+        else:
+            speak(f"You have {len(events)} event on that day.")
+
+        sleep(1.0)
+
+        for event in events:
+            start = event['start'].get('dateTime', event['start'].get('date'))
+
+            print(start, event['summary'])
+
+            try:
+                start_time_list = start.split("T")[1].split("-")[0].split(":")
+
+                start_time = str(start_time_list[0]) + ":" + str(start_time_list[1])
+
+                if int(start_time.split(":")[0]) < 12:
+                    start_time += " A.M."
+                
+                else:
+                    start_time = str((int(start_time_list[0]) - 12)) + ":" + str(start_time_list[1])
+                    start_time += " P.M."
+            
+            except Exception as e:
+                start_time = None
+
+            if start_time != None:
+                speak(f"{event['summary']} at {start_time}")
+            
+            else:
+                speak(f"{event['summary']}")
+
+            sleep(0.7)
 
 
 
@@ -163,6 +223,7 @@ def get_date(text):
                     except Exception as e:
                         print(f"Exception: {e}")
 
+
     if _month < today.month and _month != -1:
         _year += 1
     
@@ -185,6 +246,35 @@ def get_date(text):
 
         return today + datetime.timedelta(dif)
 
+    if _month == -1 or _day == -1:
+        return None
+
     if _day != -1:
         return datetime.date(month=_month, day=_day, year=_year)
 
+
+service = auth_google_calendar()
+
+
+if __name__ == "__main__":
+    while True:
+        print(">>>")
+
+        text = recognize_speech()
+
+        for keyword in CALENDAR_TRIGGERS:
+            if keyword in text.lower():
+                date = get_date(text)
+
+                if date:
+                    get_events(get_date(text), service)
+                
+                else:
+                    speak(choice(NOT_UNDERSTOOD_RESPONSES))
+            
+            else:
+                pass
+        
+        if "quit program" in text:
+            sys.exit()
+            break
