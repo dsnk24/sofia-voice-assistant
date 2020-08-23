@@ -13,13 +13,11 @@ import pytz
 from time import sleep
 import sys
 from random import choice
+from helpers.notes import take_note
+from helpers.open_program import open_app
 
 
 engine = pyttsx3.init()
-
-voices =  engine.getProperty('voices')
-engine.setProperty('voice', voices[1].id)
-
 engine.setProperty('volume', 0.5)
 
 
@@ -53,7 +51,8 @@ MONTHS = [
 DAY_EXTENSIONS = [
     "rd",
     "th",
-    "st"
+    "st",
+    "nd"
 ]
 
 
@@ -65,6 +64,62 @@ CALENDAR_TRIGGERS = [
     "what do i have"
 ]
 
+TAKE_NOTE_TRIGGERS = [
+    "write this down",
+    "remember this",
+    "make a note",
+    "take note",
+    "take a note",
+    "save this"
+]
+
+
+OPEN_SPOTIFY_TRIGGERS = [
+    "open spotify",
+    "launch spotify",
+    "play music",
+    "put some music",
+    "play some music",
+    "spotify"
+]
+
+OPEN_DISCORD_TRIGGERS = [
+    "open discord",
+    "launch discord",
+    "discord"
+]
+
+OPEN_VSCODE_TRIGGERS = [
+    "open visual studio code",
+    "open v s code",
+    "open v.s. code",
+    "open visual code",
+    "open code",
+    "launch visual studio code",
+    "launch v s code",
+    "launch v.s. code",
+    "launch visual code",
+    "launch code"
+]
+
+OPEN_SUBLIME_TRIGGERS = [
+    "open sublime",
+    "open sublime text",
+    "sublime",
+    "launch sublime",
+    "launch sublime text"
+]
+
+OPEN_CHROME_TRIGGERS = [
+    "open chrome",
+    "launch chrome",
+    "open a new tab in chrome",
+    "open browser",
+    "open a browser",
+    "browser",
+    "browser window"
+]
+
 
 NOT_UNDERSTOOD_RESPONSES = [
     "I'm sorry, I didn't catch that?",
@@ -72,7 +127,25 @@ NOT_UNDERSTOOD_RESPONSES = [
     "I don't understand, can you try again?"
 ]
 
+GREETING_KEYWORDS = [
+    "hello",
+    "hey",
+    "hi",
+    "what's up",
+    "sup",
+    "oi",
+    "ay",
+    "good morning",
+    "good afternoon"
+]
 
+GOODBYE_KEYWORDS = [
+    "bye",
+    "goodbye",
+    "good night",
+    "farewell",
+    "see ya"
+]
 
 def speak(text):
     engine.say(text)
@@ -93,7 +166,7 @@ def recognize_speech():
             print(f"Exception: {e}")
             rec_text = ""
 
-        return rec_text
+        return rec_text.lower()
 
 
 
@@ -221,7 +294,7 @@ def get_date(text):
                         _day = int(word[:found_ext])
 
                     except Exception as e:
-                        print(f"Exception: {e}")
+                       pass
 
 
     if _month < today.month and _month != -1:
@@ -257,13 +330,14 @@ service = auth_google_calendar()
 
 
 if __name__ == "__main__":
+    print("Listening...")
+    
     while True:
-        print(">>>")
 
         text = recognize_speech()
 
         for keyword in CALENDAR_TRIGGERS:
-            if keyword in text.lower():
+            if keyword in text:
                 date = get_date(text)
 
                 if date:
@@ -275,6 +349,67 @@ if __name__ == "__main__":
             else:
                 pass
         
-        if "quit program" in text:
-            sys.exit()
-            break
+        
+        for keyword in TAKE_NOTE_TRIGGERS:
+            if keyword in text:
+                speak("What do you want me to write down?")
+
+                note_text = recognize_speech()
+
+                take_note(note_text)
+
+                speak("Ok, I wrote it down and opened Notepad for you to see the note.")
+        
+
+        for keyword in OPEN_SPOTIFY_TRIGGERS:
+            if keyword in text:
+                speak("opening spotify now")
+
+                open_app('spotify')
+
+        
+        for keyword in OPEN_VSCODE_TRIGGERS:
+            if keyword in text:
+                speak("opening visual studio code now")
+
+                open_app('vscode')
+        
+
+        for keyword in OPEN_SUBLIME_TRIGGERS:
+            if keyword in text:
+                speak("opening sublime text now")
+
+                open_app('sublime')
+        
+
+        for keyword in OPEN_DISCORD_TRIGGERS:
+            if keyword in text:
+                speak("opening discord now")
+
+                open_app('discord')
+        
+
+        for keyword in OPEN_CHROME_TRIGGERS:
+            if keyword in text:
+                speak("opening chrome now")
+
+                open_app('chrome')
+        
+
+        for keyword in GREETING_KEYWORDS:
+            if keyword in text:
+                if datetime.datetime.now().time().hour() < 12 and datetime.datetime.now().time().hour() >= 0:
+                    speak("Good morning! Good to see you!")
+                
+                elif datetime.datetime.now().time().hour() >= 12 and datetime.datetime.now().time().hour() < 18:
+                    speak("Good afternoon! Good to see you!")
+                
+                elif datetime.datetime.now().time().hour() > 18 and datetime.datetime.now().time().hour() < 0:
+                    speak("Good evening! Good to see you again!")
+        
+
+        for keyword in GOODBYE_KEYWORDS:
+            if keyword in text:
+                speak("Goodbye! Hope to see you again soon!")
+                
+                sys.exit()
