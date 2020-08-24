@@ -18,6 +18,10 @@ from helpers.open_program import open_app
 
 
 engine = pyttsx3.init()
+
+voices = engine.getProperty('voices')
+engine.setProperty('voice', voices[1].id)
+
 engine.setProperty('volume', 0.5)
 
 
@@ -91,7 +95,7 @@ OPEN_DISCORD_TRIGGERS = [
 
 OPEN_VSCODE_TRIGGERS = [
     "open visual studio code",
-    "open v s code",
+    "open vs code",
     "open v.s. code",
     "open visual code",
     "open code",
@@ -162,8 +166,9 @@ def recognize_speech():
         try:
             rec_text = r.recognize_google(audio_data=audio)
 
-        except Exception as e:
-            print(f"Exception: {e}")
+            print(f'You said: {rec_text}')
+
+        except:
             rec_text = ""
 
         return rec_text.lower()
